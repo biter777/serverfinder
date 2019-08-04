@@ -1,5 +1,5 @@
 /*
-Serverfinder - find a network server (tcp/udp/http/etc)
+Package serverfinder - find a network server (tcp/udp/http/etc)
 
 Usage
 

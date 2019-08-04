@@ -45,6 +45,7 @@ package serverfinder
 
 import (
 	"fmt"
+	"runtime"
 )
 
 // ErrNotFound - ErrNotFound
@@ -73,7 +74,7 @@ func newFinder(cfg *Config) *finder {
 	}
 	return &finder{
 		Config: cfg,
-		respCh: newResponseChan(1000),
+		respCh: newResponseChan(100),
 	}
 }
 
@@ -83,6 +84,7 @@ func newFinder(cfg *Config) *finder {
 func (f *finder) close() {
 	if f != nil {
 		f.respCh.close()
+		runtime.GC()
 	}
 }
 
@@ -90,9 +92,12 @@ func (f *finder) close() {
 
 func (f *finder) find() (port int, err error) {
 	var stop bool
-	for port := f.PortStart; port < f.PortEnd && !stop; port++ {
-		go f.request(port)
-	}
+	go func() {
+		for port := f.PortStart; port < f.PortEnd && !stop; port++ {
+			f.respCh.wait()
+			go f.request(port)
+		}
+	}()
 
 	for i := 0; i < f.PortEnd-f.PortStart; i++ {
 		resp := f.respCh.rcv()
@@ -106,7 +111,8 @@ func (f *finder) find() (port int, err error) {
 // ------------------------------------------------------------------
 
 func (f *finder) request(port int) {
-	f.respCh.send(&response{err: f.Request(port), port: port})
+	err := f.Request(port)
+	f.respCh.send(&response{err: err, port: port})
 }
 
 // ------------------------------------------------------------------
