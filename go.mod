@@ -1,1 +1,3 @@
-module github.com/biter777/serverfinder
+module github.com/biter777/semaphore
+
+go 1.15
