@@ -1,12 +1,15 @@
 package serverfinder
 
-import "errors"
+import (
+	"errors"
+)
 
 // Config - config for Find() func
 type Config struct {
-	PortStart int                  // Port from starting search a ProxyRotator
-	PortEnd   int                  // Port end
-	Request   func(port int) error // Text for send to ProxyRotator
+	EnvVar    string                                       // Environment variable of server
+	PortStart int                                          // Port from starting search a server
+	PortEnd   int                                          // Port end
+	Request   func(port int) (proxyPort int, err error) // Request func for send to server
 }
 
 // ------------------------------------------------------------------

@@ -8,13 +8,14 @@ import (
 
 type responseChan struct {
 	sync.Mutex
-	ch       chan *response
-	chClosed bool
+	ch     chan *response
+	closed bool
 }
 
 type response struct {
-	err  error
-	port int
+	err          error
+	port         int // основной порт сервера
+	portOptional int // дополнительный порт сервера, если поддерживается, опционально
 }
 
 // ------------------------------------------------------------------
@@ -26,9 +27,12 @@ func newResponseChan(cap int) *responseChan {
 // ------------------------------------------------------------------
 
 func (c *responseChan) close() {
+	if c == nil {
+		return
+	}
 	c.Lock()
-	if c.ch != nil && !c.chClosed {
-		c.chClosed = true
+	if c.ch != nil && !c.closed {
+		c.closed = true
 		close(c.ch)
 	}
 	c.Unlock()
@@ -37,7 +41,7 @@ func (c *responseChan) close() {
 // ------------------------------------------------------------------
 
 func (c *responseChan) wait() {
-	for !c.chClosed && c.isFull() {
+	for !c.closed && c.isFull() {
 		time.Sleep(time.Millisecond)
 	}
 }
@@ -47,16 +51,14 @@ func (c *responseChan) wait() {
 func (c *responseChan) send(resp *response) error {
 	c.wait()
 	c.Lock()
-	if c.ch == nil || c.chClosed {
-		c.Unlock()
+	defer c.Unlock()
+	if c.ch == nil || c.closed {
 		return errors.New("chan is closed")
 	}
 	if len(c.ch) >= cap(c.ch) {
-		c.Unlock()
 		return c.send(resp)
 	}
 	c.ch <- resp
-	c.Unlock()
 	return nil
 }
 
